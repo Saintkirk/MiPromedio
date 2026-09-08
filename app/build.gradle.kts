@@ -20,49 +20,31 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("mipromedio-release.jks")
-            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "mipromedio123"
-            keyAlias = System.getenv("KEY_ALIAS") ?: "mipromedio"
-            keyPassword = System.getenv("KEY_PASSWORD") ?: "mipromedio123"
+            storePassword = "mipromedio123"
+            keyAlias = "mipromedio"
+            keyPassword = "mipromedio123"
         }
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = true
-            isShrinkResources = true
+            isMinifyEnabled = false
             isDebuggable = false
             signingConfig = signingConfigs.getByName("release")
-            proguardFiles(
-                getDefaultProguardFile("proguard-android-optimize.txt"),
-                "proguard-rules.pro"
-            )
         }
         debug {
             isDebuggable = true
-            signingConfig = signingConfigs.getByName("release")
         }
     }
-
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-
     kotlinOptions {
         jvmTarget = "17"
     }
-
     buildFeatures {
         compose = true
-    }
-
-    packaging {
-        resources {
-            // Excluir archivos innecesarios para reducir tamaño
-            excludes += "/META-INF/{AL2.0,LGPL2.1}"
-            excludes += "META-INF/proguard/androidx-*.pro"
-            excludes += "DebugProbesKt.bin"
-        }
     }
 }
 
