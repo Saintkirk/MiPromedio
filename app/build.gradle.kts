@@ -1,9 +1,3 @@
-plugins {
-    id("com.android.application")
-    id("org.jetbrains.kotlin.android")
-    id("org.jetbrains.kotlin.plugin.compose")
-}
-
 android {
     namespace = "cl.mipromedio.app"
     compileSdk = 35
@@ -19,10 +13,11 @@ android {
 
     signingConfigs {
         create("release") {
+            // Lee las variables de entorno seguras que inyecta GitHub Actions
             storeFile = file("mipromedio-release.jks")
-            storePassword = "mipromedio123"
-            keyAlias = "mipromedio"
-            keyPassword = "mipromedio123"
+            storePassword = System.getenv("KEY_STORE_PASSWORD") ?: "mipromedio123"
+            keyAlias = System.getenv("ALIAS") ?: "mipromedio"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "mipromedio123"
         }
     }
 
@@ -36,6 +31,16 @@ android {
             isDebuggable = true
         }
     }
+
+    // Código para cambiar automáticamente el nombre del APK a MiPromedio
+    applicationVariants.all {
+        val variant = this
+        variant.outputs.map { it as com.android.build.gradle.internal.api.ApkVariantOutputImpl }.forEach { output ->
+            val outputFileName = "MiPromedio-${variant.name}-${variant.versionName}.apk"
+            output.outputFileName = outputFileName
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
@@ -46,23 +51,4 @@ android {
     buildFeatures {
         compose = true
     }
-}
-
-dependencies {
-    val composeBom = platform("androidx.compose:compose-bom:2024.10.01")
-    implementation(composeBom)
-    androidTestImplementation(composeBom)
-
-    implementation("androidx.core:core-ktx:1.15.0")
-    implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.8.7")
-    implementation("androidx.activity:activity-compose:1.9.3")
-    implementation("androidx.compose.ui:ui")
-    implementation("androidx.compose.ui:ui-graphics")
-    implementation("androidx.compose.ui:ui-tooling-preview")
-    implementation("androidx.compose.material3:material3")
-    implementation("androidx.compose.material:material-icons-extended")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.8.7")
-
-    debugImplementation("androidx.compose.ui:ui-tooling")
-    debugImplementation("androidx.compose.ui:ui-test-manifest")
 }
