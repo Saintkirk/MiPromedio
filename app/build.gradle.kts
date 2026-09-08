@@ -20,9 +20,9 @@ android {
     signingConfigs {
         create("release") {
             storeFile = file("mipromedio-release.jks")
-            storePassword = "mipromedio123"
-            keyAlias = "mipromedio"
-            keyPassword = "mipromedio123"
+            storePassword = System.getenv("KEYSTORE_PASSWORD") ?: "mipromedio123"
+            keyAlias = System.getenv("KEY_ALIAS") ?: "mipromedio"
+            keyPassword = System.getenv("KEY_PASSWORD") ?: "mipromedio123"
         }
     }
 
