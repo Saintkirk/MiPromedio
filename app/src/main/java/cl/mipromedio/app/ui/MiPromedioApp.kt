@@ -12,6 +12,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.ArrowForward
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Clear
 import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.School
@@ -42,10 +44,24 @@ fun MiPromedioApp() {
     var esOnline by remember { mutableStateOf(false) }
     var notaExamen by remember { mutableStateOf("") }
     var metaFinal by remember { mutableStateOf("4.0") }
+    var calculado by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
     val resultado = remember(notas, esOnline, notaExamen, metaFinal) {
         calcularResultado(notas, esOnline, notaExamen, metaFinal)
+    }
+
+    val notasCompletas = notas.all {
+        val n = it.nota.replace(',', '.').toDoubleOrNull()
+        val p = it.porcentaje.replace(',', '.').toDoubleOrNull()
+        n != null && p != null && n in 1.0..7.0 && p > 0
+    }
+    val sumaPct = notas.sumOf { it.porcentaje.replace(',', '.').toDoubleOrNull() ?: 0.0 }
+    val pctOk = sumaPct in 74.0..76.0
+
+    LaunchedEffect(esOnline) {
+        calculado = false
+        notaExamen = ""
     }
 
     Column(
@@ -63,49 +79,99 @@ fun MiPromedioApp() {
             notas = notas,
             onNotaChange = { index, value ->
                 notas = notas.toMutableList().also { it[index] = it[index].copy(nota = value) }
+                calculado = false
             },
             onPorcentajeChange = { index, value ->
                 notas = notas.toMutableList().also { it[index] = it[index].copy(porcentaje = value) }
+                calculado = false
             }
         )
         Spacer(Modifier.height(12.dp))
-        val sumaPct = notas.sumOf { it.porcentaje.toDoubleOrNull() ?: 0.0 }
         InfoChip(
-            text = if (sumaPct in 74.5..75.5) "✓ Porcentajes suman ~75%"
+            text = if (pctOk) "✓ Porcentajes suman ~75%"
             else "Los 4 porcentajes deben sumar 75% (actual: ${"%.1f".format(sumaPct)}%)",
-            isOk = sumaPct in 74.5..75.5
+            isOk = pctOk
         )
         Spacer(Modifier.height(16.dp))
+
+        if (!calculado) {
+            Button(
+                onClick = { calculado = true },
+                enabled = notasCompletas && pctOk,
+                modifier = Modifier.fillMaxWidth().height(52.dp),
+                shape = RoundedCornerShape(14.dp),
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+            ) {
+                if (esOnline) {
+                    Icon(Icons.Default.ArrowForward, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Avanzar al examen final", fontWeight = FontWeight.SemiBold)
+                } else {
+                    Icon(Icons.Default.Calculate, contentDescription = null)
+                    Spacer(Modifier.width(8.dp))
+                    Text("Calcular promedio (presencial)", fontWeight = FontWeight.SemiBold)
+                }
+            }
+            if (!notasCompletas || !pctOk) {
+                Spacer(Modifier.height(8.dp))
+                Text(
+                    text = "Completa las 4 notas (1.0–7.0) y porcentajes que sumen 75%",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        }
+
         AnimatedVisibility(
-            visible = resultado.requiereExamen,
+            visible = calculado,
             enter = fadeIn() + slideInVertically(),
             exit = fadeOut()
         ) {
-            ExamenCard(
-                notaExamen = notaExamen,
-                onNotaChange = { notaExamen = it },
-                metaFinal = metaFinal,
-                onMetaChange = { metaFinal = it },
-                notaNecesaria = resultado.notaNecesariaExamen
-            )
-        }
-        Spacer(Modifier.height(16.dp))
-        ResultadosCard(resultado = resultado)
-        Spacer(Modifier.height(24.dp))
-        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            OutlinedButton(
-                onClick = {
-                    notas = listOf(NotaInput(), NotaInput(), NotaInput(), NotaInput())
-                    notaExamen = ""
-                    metaFinal = "4.0"
-                },
-                modifier = Modifier.weight(1f),
-                shape = RoundedCornerShape(14.dp)
-            ) {
-                Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
-                Spacer(Modifier.width(6.dp))
-                Text("Limpiar")
+            Column {
+                Spacer(Modifier.height(8.dp))
+                ResultadosCard(resultado = resultado)
+                Spacer(Modifier.height(16.dp))
+                val mostrarExamen = esOnline || resultado.requiereExamen
+                if (mostrarExamen) {
+                    ExamenCard(
+                        notaExamen = notaExamen,
+                        onNotaChange = { notaExamen = it },
+                        metaFinal = metaFinal,
+                        onMetaChange = { metaFinal = it },
+                        notaNecesaria = resultado.notaNecesariaExamen,
+                        esOnline = esOnline
+                    )
+                    Spacer(Modifier.height(16.dp))
+                    if (notaExamen.isNotBlank() && resultado.promedioFinal != null) {
+                        ResultadosFinalCard(resultado = resultado)
+                        Spacer(Modifier.height(16.dp))
+                    }
+                } else if (resultado.exento) {
+                    ExentoCard(promedio = resultado.promedioPresentacion)
+                    Spacer(Modifier.height(16.dp))
+                }
             }
+        }
+
+        Spacer(Modifier.height(16.dp))
+        OutlinedButton(
+            onClick = {
+                notas = listOf(NotaInput(), NotaInput(), NotaInput(), NotaInput())
+                notaExamen = ""
+                metaFinal = "4.0"
+                calculado = false
+            },
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(14.dp)
+        ) {
+            Icon(Icons.Default.Clear, contentDescription = null, modifier = Modifier.size(18.dp))
+            Spacer(Modifier.width(6.dp))
+            Text("Limpiar todo")
         }
         Spacer(Modifier.height(32.dp))
         Text(
@@ -228,7 +294,8 @@ private fun ExamenCard(
     onNotaChange: (String) -> Unit,
     metaFinal: String,
     onMetaChange: (String) -> Unit,
-    notaNecesaria: Double?
+    notaNecesaria: Double?,
+    esOnline: Boolean
 ) {
     Card(
         modifier = Modifier.fillMaxWidth(),
@@ -237,7 +304,12 @@ private fun ExamenCard(
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.4f))
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
-            Text("Examen Final (25%)", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.secondary)
+            Text(
+                if (esOnline) "Examen Final (25%) — Obligatorio (Online)"
+                else "Examen Final (25%) — Debes rendirlo",
+                style = MaterialTheme.typography.titleLarge,
+                color = MaterialTheme.colorScheme.secondary
+            )
             Spacer(Modifier.height(12.dp))
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(
@@ -295,28 +367,44 @@ private fun ResultadosCard(resultado: ResultadoCalculo) {
             modifier = Modifier.fillMaxWidth().padding(20.dp),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text("Resultados", style = MaterialTheme.typography.titleLarge)
-            Spacer(Modifier.height(16.dp))
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceEvenly) {
-                ResultBox(
-                    label = "Presentación",
-                    value = resultado.promedioPresentacion?.let { "%.2f".format(it) } ?: "—",
-                    sub = "75%"
-                )
-                ResultBox(
-                    label = "Final",
-                    value = resultado.promedioFinal?.let { "%.2f".format(it) } ?: "—",
-                    sub = if (resultado.exento) "Exento" else "con examen",
-                    highlight = true
-                )
-            }
-            Spacer(Modifier.height(14.dp))
+            Text("Promedio de presentación", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                resultado.promedioPresentacion?.let { "%.2f".format(it) } ?: "—",
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
+                color = MaterialTheme.colorScheme.primary,
+                fontWeight = FontWeight.Bold
+            )
+            Text("sobre 7.0  ·  vale 75%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+    }
+}
+
+@Composable
+private fun ResultadosFinalCard(resultado: ResultadoCalculo) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surface),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary.copy(alpha = 0.6f))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("Nota final", style = MaterialTheme.typography.titleLarge)
+            Spacer(Modifier.height(12.dp))
+            Text(
+                resultado.promedioFinal?.let { "%.2f".format(it) } ?: "—",
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
+                color = MaterialTheme.colorScheme.secondary,
+                fontWeight = FontWeight.Bold
+            )
+            Spacer(Modifier.height(10.dp))
             val (estadoText, estadoColor) = when {
-                resultado.exento -> "🎉 Exento de examen (≥ 5.0)" to Color(0xFF22C55E)
-                resultado.requiereExamen && resultado.promedioFinal == null -> "Debes rendir examen" to Color(0xFFF59E0B)
                 resultado.promedioFinal != null && resultado.promedioFinal!! >= 4.0 -> "Aprobado" to Color(0xFF22C55E)
                 resultado.promedioFinal != null -> "Reprobado" to Color(0xFFEF4444)
-                else -> "Ingresa tus notas" to MaterialTheme.colorScheme.onSurfaceVariant
+                else -> "—" to MaterialTheme.colorScheme.onSurfaceVariant
             }
             Box(
                 modifier = Modifier
@@ -327,23 +415,45 @@ private fun ResultadosCard(resultado: ResultadoCalculo) {
                     .padding(vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(text = estadoText, color = estadoColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
+                Text(estadoText, color = estadoColor, fontWeight = FontWeight.SemiBold, style = MaterialTheme.typography.titleMedium)
             }
         }
     }
 }
 
 @Composable
-private fun ResultBox(label: String, value: String, sub: String, highlight: Boolean = false) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Text(label, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(
-            value,
-            style = MaterialTheme.typography.displayLarge.copy(fontSize = 36.sp),
-            color = if (highlight) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onBackground,
-            fontWeight = FontWeight.Bold
-        )
-        Text(sub, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+private fun ExentoCard(promedio: Double?) {
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFF22C55E).copy(alpha = 0.12f)),
+        border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF22C55E).copy(alpha = 0.5f))
+    ) {
+        Column(
+            modifier = Modifier.fillMaxWidth().padding(20.dp),
+            horizontalAlignment = Alignment.CenterHorizontally
+        ) {
+            Text("🎉 Exento de examen", style = MaterialTheme.typography.titleLarge, color = Color(0xFF22C55E))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                "Promedio ${promedio?.let { "%.2f".format(it) } ?: "—"} ≥ 5.0",
+                style = MaterialTheme.typography.bodyLarge,
+                color = Color(0xFF22C55E)
+            )
+            Text(
+                "Modalidad presencial → no rinde examen final",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Spacer(Modifier.height(12.dp))
+            Text(
+                promedio?.let { "%.2f".format(it) } ?: "—",
+                style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
+                color = Color(0xFF22C55E),
+                fontWeight = FontWeight.Bold
+            )
+            Text("Nota final", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
     }
 }
 
@@ -353,7 +463,10 @@ private fun InfoChip(text: String, isOk: Boolean) {
         modifier = Modifier
             .fillMaxWidth()
             .clip(RoundedCornerShape(10.dp))
-            .background(if (isOk) Color(0xFF22C55E).copy(alpha = 0.12f) else Color(0xFF3B82F6).copy(alpha = 0.12f))
+            .background(
+                if (isOk) Color(0xFF22C55E).copy(alpha = 0.12f)
+                else Color(0xFF3B82F6).copy(alpha = 0.12f)
+            )
             .padding(horizontal = 12.dp, vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
