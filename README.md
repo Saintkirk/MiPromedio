@@ -1,44 +1,58 @@
 # MiPromedio – Calculadora de Notas (APK)
 
-App nativa Android que replica la lógica de [mipromedio.cl](https://mipromedio.cl/) con las reglas específicas solicitadas:
+App nativa Android (Kotlin + Jetpack Compose) que implementa la lógica de notas de [mipromedio.cl](https://mipromedio.cl) con reglas específicas:
 
 ## Reglas de cálculo
-- **4 notas** con sus **4 porcentajes** (deben sumar **75%**)
+- **4 notas** + **4 porcentajes** (suman **75%**)
 - **Examen final** = **25%**
-- Si el promedio de presentación es **≥ 5.0** → **exención** (no se rinde examen)
+- Si promedio de presentación **≥ 5.0** → **exención** (no se rinde examen)
 - **Excepto** si el curso es **Online** → el examen final **siempre es obligatorio**
 - Escala: **1.0 – 7.0**
 
 ## Visuales
-Diseñado aplicando la skill **taste-skill** (https://github.com/Saintkirk/taste-skill):
-- Dark premium background
-- Acento magenta calibrado (sin púrpura AI genérico)
-- Tipografía limpia y tracking controlado
-- Densidad equilibrada
-- Motion sutil (AnimatedVisibility)
-- Alto contraste y legibilidad
+Diseñado con **taste-skill** (https://github.com/Saintkirk/taste-skill):
+- Dark premium
+- Acento magenta calibrado
+- Tipografía limpia
+- Motion sutil
+- Alto contraste
 
-## Requisitos para build
-- Android Studio Ladybug+ / AGP 8.7+
-- JDK 17
-- SDK 35
+## Build local (recomendado)
 
-## Generar APK
+1. Abre el proyecto en **Android Studio** (Ladybug o superior)
+2. Deja que sincronice Gradle (descarga el wrapper automáticamente si falta)
+3. Build → Build Bundle(s) / APK(s) → Build APK(s)
+
+O desde terminal (con Android SDK instalado):
 
 ```bash
 ./gradlew assembleDebug
-# APK en: app/build/outputs/apk/debug/app-debug.apk
+# APK → app/build/outputs/apk/debug/app-debug.apk
 ```
 
-```bash
-./gradlew assembleRelease
-```
+## GitHub Actions (build automático)
+
+Cada push a `main` dispara el workflow **Build APK**.  
+El APK queda disponible en la pestaña **Actions** → último run → Artifacts → `app-debug`.
+
+También puedes lanzarlo manualmente: Actions → Build APK → Run workflow.
 
 ## Estructura
-- Kotlin + Jetpack Compose + Material 3
-- Lógica de cálculo 100% en Compose (reactiva)
-- Sin dependencias externas innecesarias
-
----
+```
+MiPromedio/
+├── app/
+│   ├── build.gradle.kts
+│   └── src/main/
+│       ├── AndroidManifest.xml
+│       ├── java/cl/mipromedio/app/
+│       │   ├── MainActivity.kt
+│       │   └── ui/
+│       │       ├── MiPromedioApp.kt   ← lógica + UI completa
+│       │       └── theme/
+│       └── res/
+├── build.gradle.kts
+├── settings.gradle.kts
+└── .github/workflows/build-apk.yml
+```
 
 **Confirmación:** Se utilizó la skill taste-skill para las visuales del proyecto.
