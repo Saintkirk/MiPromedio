@@ -28,28 +28,48 @@ android {
 
     buildTypes {
         release {
-            isMinifyEnabled = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             isDebuggable = false
             signingConfig = signingConfigs.getByName("release")
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
+            // Optimizaciones adicionales
+            postprocessing {
+                removeUnusedCode = true
+                removeUnusedResources = true
+                obfuscate = true
+                optimizeCode = true
+            }
         }
         debug {
             isDebuggable = true
             signingConfig = signingConfigs.getByName("release")
         }
     }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
+
     kotlinOptions {
         jvmTarget = "17"
     }
+
     buildFeatures {
         compose = true
+    }
+
+    packaging {
+        resources {
+            // Excluir archivos innecesarios para reducir tamaño
+            excludes += "/META-INF/{AL2.0,LGPL2.1}"
+            excludes += "META-INF/proguard/androidx-*.pro"
+            excludes += "DebugProbesKt.bin"
+        }
     }
 }
 
