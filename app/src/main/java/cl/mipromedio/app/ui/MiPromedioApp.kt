@@ -19,6 +19,7 @@ import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.outlined.School
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -36,7 +37,7 @@ data class NotaInput(val nota: String = "", val porcentaje: String = "")
 @Composable
 fun MiPromedioApp() {
     var notas by remember { mutableStateOf(listOf(NotaInput(), NotaInput(), NotaInput(), NotaInput())) }
-    var esOnline by remember { mutableStateOf(false) }
+    var esOnline by rememberSaveable { mutableStateOf(false) }
     var notaExamen by remember { mutableStateOf("") }
     var metaFinal by remember { mutableStateOf("4.0") }
     var calculado by remember { mutableStateOf(false) }
@@ -157,16 +158,42 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ModoCursoCard(esOnline: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
-        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(0.4f))) {
-        Row(Modifier.fillMaxWidth().padding(16.dp), verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.SpaceBetween) {
-            Column {
-                Text("Modalidad del curso", style = MaterialTheme.typography.titleMedium)
-                Text(if (esOnline) "Online: el examen final siempre es obligatorio" else "Presencial: con promedio sobre 5.0 se exime del examen",
-                    style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(0.4f))
+    ) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            Text("Modalidad del curso", style = MaterialTheme.typography.titleMedium)
+            Spacer(Modifier.height(10.dp))
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Button(
+                    onClick = { onToggle(false) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (!esOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (!esOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) { Text("Presencial", fontWeight = FontWeight.SemiBold) }
+                Button(
+                    onClick = { onToggle(true) },
+                    modifier = Modifier.weight(1f).height(48.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (esOnline) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant,
+                        contentColor = if (esOnline) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                ) { Text("Online", fontWeight = FontWeight.SemiBold) }
             }
-            Switch(esOnline, onToggle, colors = SwitchDefaults.colors(checkedThumbColor = Color.White, checkedTrackColor = MaterialTheme.colorScheme.primary))
+            Spacer(Modifier.height(8.dp))
+            Text(
+                if (esOnline) "Online: el examen final siempre es obligatorio"
+                else "Presencial: con promedio sobre 5.0 se exime del examen",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
         }
     }
 }
