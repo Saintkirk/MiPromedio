@@ -1,3 +1,5 @@
+@file:OptIn(androidx.compose.foundation.ExperimentalFoundationApi::class)
+
 package cl.mipromedio.app.ui
 
 import androidx.compose.animation.AnimatedVisibility
@@ -7,6 +9,8 @@ import androidx.compose.animation.slideInVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -23,6 +27,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusEvent
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
@@ -30,11 +35,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import kotlin.math.round
 
 data class NotaInput(val nota: String = "", val porcentaje: String = "")
 
-/** Auto formato escala chilena: 55→5.5, 70→7.0, 42→4.2 */
 fun formatNotaChilena(raw: String): String {
     val digits = raw.filter { it.isDigit() }.take(2)
     if (digits.isEmpty()) return ""
@@ -58,6 +64,7 @@ fun MiPromedioApp() {
     var calculado by remember { mutableStateOf(false) }
 
     val scrollState = rememberScrollState()
+    val scope = rememberCoroutineScope()
     val resultado = remember(notas, esOnline, notaExamen, metaFinal) {
         calcularResultado(notas, esOnline, notaExamen, metaFinal)
     }
@@ -74,10 +81,20 @@ fun MiPromedioApp() {
     val puedeCalcular = todasNotasLlenas && todasPctLlenos && notasEnRango && pctExacto100
 
     LaunchedEffect(esOnline) { calculado = false; notaExamen = "" }
+    LaunchedEffect(calculado) {
+        if (calculado) {
+            delay(200)
+            scrollState.animateScrollTo(scrollState.maxValue)
+        }
+    }
 
     Column(
-        modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)
-            .verticalScroll(scrollState).padding(horizontal = 20.dp, vertical = 16.dp)
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+            .imePadding()
+            .verticalScroll(scrollState)
+            .padding(horizontal = 20.dp, vertical = 16.dp)
     ) {
         Header()
         Spacer(Modifier.height(20.dp))
@@ -85,6 +102,7 @@ fun MiPromedioApp() {
         Spacer(Modifier.height(16.dp))
         NotasCard(
             notas = notas,
+            scrollState = scrollState,
             onNotaChange = { i, v -> notas = notas.toMutableList().also { it[i] = it[i].copy(nota = formatNotaChilena(v)) }; calculado = false },
             onPorcentajeChange = { i, v -> notas = notas.toMutableList().also { it[i] = it[i].copy(porcentaje = formatPorcentaje(v)) }; calculado = false }
         )
@@ -142,12 +160,16 @@ fun MiPromedioApp() {
 
         AnimatedVisibility(visible = calculado, enter = fadeIn() + slideInVertically(), exit = fadeOut()) {
             Column {
-                Spacer(Modifier.height(8.dp))
+                Spacer(modifier.height(8.dp))
                 ResultadosCard(resultado)
                 Spacer(Modifier.height(16.dp))
                 val mostrarExamen = esOnline || resultado.requiereExamen
                 if (mostrarExamen) {
-                    ExamenCard(notaExamen, { notaExamen = formatNotaChilena(it) }, metaFinal, { metaFinal = it }, resultado.notaNecesariaExamen, esOnline)
+                    ExamenCard(
+                        notaExamen, { notaExamen = formatNotaChilena(it) },
+                        metaFinal, { metaFinal = it },
+                        resultado.notaNecesariaExamen, esOnline, scrollState
+                    )
                     Spacer(Modifier.height(16.dp))
                     if (notaExamen.isNotBlank() && resultado.promedioFinal != null) {
                         ResultadosFinalCard(resultado); Spacer(Modifier.height(16.dp))
@@ -178,10 +200,10 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ModoCursoCard(esOnline: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(0.4f))) {
-        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(Modifier.fillMaxWidth().padding(16.dp)) {
             Text("Modalidad del curso", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -203,7 +225,13 @@ fun MiPromedioApp() {
     }
 }
 
-@Composable private fun NotasCard(notas: List<NotaInput>, onNotaChange: (Int, String) -> Unit, onPorcentajeChange: (Int, String) -> Unit) {
+@Composable private fun NotasCard(
+    notas: List<NotaInput>,
+    scrollState: androidx.compose.foundation.ScrollState,
+    onNotaChange: (Int, String) -> Unit,
+    onPorcentajeChange: (Int, String) -> Unit
+) {
+    val scope = rememberCoroutineScope()
     Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(0.5f))) {
@@ -220,22 +248,37 @@ fun MiPromedioApp() {
                     OutlinedTextField(nota.nota, { onNotaChange(index, it) },
                         label = { Text("Nota ${index + 1}") }, placeholder = { Text("ej. 55") }, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1.2f), shape = RoundedCornerShape(12.dp))
+                        modifier = Modifier.weight(1.2f).onFocusEvent { st ->
+                            if (st.isFocused && index >= 2) {
+                                scope.launch { delay(280); scrollState.animateScrollTo(scrollState.maxValue) }
+                            }
+                        }, shape = RoundedCornerShape(12.dp))
                     OutlinedTextField(nota.porcentaje, { onPorcentajeChange(index, it) },
                         label = { Text("%") }, placeholder = { Text("20") }, singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(0.8f), shape = RoundedCornerShape(12.dp))
+                        modifier = Modifier.weight(0.8f).onFocusEvent { st ->
+                            if (st.isFocused && index >= 2) {
+                                scope.launch { delay(280); scrollState.animateScrollTo(scrollState.maxValue) }
+                            }
+                        }, shape = RoundedCornerShape(12.dp))
                 }
             }
         }
     }
 }
 
-@Composable private fun ExamenCard(notaExamen: String, onNotaChange: (String) -> Unit, metaFinal: String, onMetaChange: (String) -> Unit, notaNecesaria: Double?, esOnline: Boolean) {
+@Composable private fun ExamenCard(
+    notaExamen: String, onNotaChange: (String) -> Unit,
+    metaFinal: String, onMetaChange: (String) -> Unit,
+    notaNecesaria: Double?, esOnline: Boolean,
+    scrollState: androidx.compose.foundation.ScrollState
+) {
+    val scope = rememberCoroutineScope()
+    val bring = remember { BringIntoViewRequester() }
     Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(0.4f))) {
-        Column(Modifier.padding(16.dp)) {
+        Column(modifier = Modifier.padding(16.dp)) {
             Text(if (esOnline) "Examen final (25%) — Obligatorio en cursos online" else "Examen final (25%) — Debes calcularlo",
                 style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.secondary)
             if (!esOnline) {
@@ -247,10 +290,22 @@ fun MiPromedioApp() {
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                 OutlinedTextField(notaExamen, onNotaChange, label = { Text("Nota del examen") }, placeholder = { Text("ej. 45") },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+                    modifier = Modifier.weight(1f).bringIntoViewRequester(bring).onFocusEvent { st ->
+                        if (st.isFocused) {
+                            scope.launch {
+                                delay(300)
+                                bring.bringIntoView()
+                                scrollState.animateScrollTo(scrollState.maxValue)
+                            }
+                        }
+                    }, shape = RoundedCornerShape(12.dp))
                 OutlinedTextField(metaFinal, onMetaChange, label = { Text("Meta final") }, placeholder = { Text("4.0") },
                     singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp))
+                    modifier = Modifier.weight(1f).onFocusEvent { st ->
+                        if (st.isFocused) {
+                            scope.launch { delay(300); scrollState.animateScrollTo(scrollState.maxValue) }
+                        }
+                    }, shape = RoundedCornerShape(12.dp))
             }
             if (notaNecesaria != null) {
                 Spacer(Modifier.height(10.dp))
@@ -266,7 +321,7 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ResultadosCard(resultado: ResultadoCalculo) {
-    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(0.6f))) {
         Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -281,10 +336,10 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ResultadosFinalCard(resultado: ResultadoCalculo) {
-    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary.copy(0.6f))) {
-        Column(modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Nota final", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
             Text(resultado.promedioFinal?.let { "%.1f".format(it) } ?: "—",
