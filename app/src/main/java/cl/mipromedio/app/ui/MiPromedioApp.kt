@@ -151,7 +151,7 @@ fun MiPromedioApp() {
 @Composable private fun Header() {
     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth()) {
         Text("MiPromedio", style = MaterialTheme.typography.displayLarge.copy(
-            brush = Brush.linearGradient(listOf(Color(0xFFE879F9), Color(0xFFC026D3)))), fontWeight = FontWeight.Bold)
+            brush = Brush.linearGradient(listOf(Color(0xFFFFB800), Color(0xFFFF6B00)))), fontWeight = FontWeight.Bold)
         Text("4 notas (75%) + Examen (25%)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }
@@ -296,11 +296,11 @@ fun MiPromedioApp() {
 
 @Composable private fun InfoChip(text: String, isOk: Boolean) {
     Row(Modifier.fillMaxWidth().clip(RoundedCornerShape(10.dp))
-        .background(if (isOk) Color(0xFF22C55E).copy(0.12f) else Color(0xFF3B82F6).copy(0.12f))
+        .background(if (isOk) Color(0xFF22C55E).copy(0.12f) else Color(0xFFFF8C33).copy(0.12f))
         .padding(horizontal = 12.dp, vertical = 8.dp), verticalAlignment = Alignment.CenterVertically) {
-        Icon(Icons.Default.Info, null, tint = if (isOk) Color(0xFF22C55E) else Color(0xFF3B82F6), modifier = Modifier.size(16.dp))
+        Icon(Icons.Default.Info, null, tint = if (isOk) Color(0xFF22C55E) else Color(0xFFFF8C33), modifier = Modifier.size(16.dp))
         Spacer(Modifier.width(8.dp))
-        Text(text, style = MaterialTheme.typography.bodyMedium, color = if (isOk) Color(0xFF22C55E) else Color(0xFF93C5FD))
+        Text(text, style = MaterialTheme.typography.bodyMedium, color = if (isOk) Color(0xFF22C55E) else Color(0xFFFFD080))
     }
 }
 
