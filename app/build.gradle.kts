@@ -36,13 +36,6 @@ android {
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
             )
-            // Optimizaciones adicionales
-            postprocessing {
-                removeUnusedCode = true
-                removeUnusedResources = true
-                obfuscate = true
-                optimizeCode = true
-            }
         }
         debug {
             isDebuggable = true
