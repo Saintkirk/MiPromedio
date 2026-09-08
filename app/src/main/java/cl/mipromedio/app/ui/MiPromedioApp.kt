@@ -165,10 +165,7 @@ fun MiPromedioApp() {
         ) {
             Icon(Icons.Default.Clear, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Limpiar todo")
         }
-        Spacer(Modifier.height(32.dp))
-        Text("Diseñado con taste-skill · Escala 1.0 – 7.0", style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.fillMaxWidth(), textAlign = TextAlign.Center)
-        Spacer(Modifier.height(16.dp))
+        Spacer(Modifier.height(24.dp))
     }
 }
 
@@ -181,10 +178,10 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ModoCursoCard(esOnline: Boolean, onToggle: (Boolean) -> Unit) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.outline.copy(0.4f))) {
-        Column(Modifier.fillMaxWidth().padding(16.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
             Text("Modalidad del curso", style = MaterialTheme.typography.titleMedium)
             Spacer(Modifier.height(10.dp))
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -235,7 +232,7 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ExamenCard(notaExamen: String, onNotaChange: (String) -> Unit, metaFinal: String, onMetaChange: (String) -> Unit, notaNecesaria: Double?, esOnline: Boolean) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surfaceVariant),
         border = androidx.compose.foundation.BorderStroke(1.dp, MaterialTheme.colorScheme.secondary.copy(0.4f))) {
         Column(Modifier.padding(16.dp)) {
@@ -259,9 +256,9 @@ fun MiPromedioApp() {
                 Spacer(Modifier.height(10.dp))
                 val color = when { notaNecesaria > 7.0 -> MaterialTheme.colorScheme.error; notaNecesaria < 1.0 -> MaterialTheme.colorScheme.primary; else -> MaterialTheme.colorScheme.secondary }
                 Text(when {
-                    notaNecesaria > 7.0 -> "Imposible alcanzar la meta (necesitas ${"%.2f".format(notaNecesaria)})"
+                    notaNecesaria > 7.0 -> "Imposible alcanzar la meta (necesitas ${"%.1f".format(notaNecesaria)})"
                     notaNecesaria < 1.0 -> "Ya tienes la meta asegurada"
-                    else -> "Necesitas ${"%.2f".format(notaNecesaria)} en el examen para llegar a $metaFinal"
+                    else -> "Necesitas ${"%.1f".format(notaNecesaria)} en el examen para llegar a $metaFinal"
                 }, style = MaterialTheme.typography.bodyMedium, color = color, fontWeight = FontWeight.Medium)
             }
         }
@@ -269,13 +266,13 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ResultadosCard(resultado: ResultadoCalculo) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.primary.copy(0.6f))) {
         Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Promedio de presentación", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
-            Text(resultado.promedioPresentacion?.let { "%.2f".format(it) } ?: "—",
+            Text(resultado.promedioPresentacion?.let { "%.1f".format(it) } ?: "—",
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
                 color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
             Text("sobre 7.0  ·  vale 75%", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -284,13 +281,13 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ResultadosFinalCard(resultado: ResultadoCalculo) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(MaterialTheme.colorScheme.surface),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, MaterialTheme.colorScheme.secondary.copy(0.6f))) {
-        Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+        Column(modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
             Text("Nota final", style = MaterialTheme.typography.titleLarge)
             Spacer(Modifier.height(12.dp))
-            Text(resultado.promedioFinal?.let { "%.2f".format(it) } ?: "—",
+            Text(resultado.promedioFinal?.let { "%.1f".format(it) } ?: "—",
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp),
                 color = MaterialTheme.colorScheme.secondary, fontWeight = FontWeight.Bold)
             Spacer(Modifier.height(10.dp))
@@ -309,7 +306,7 @@ fun MiPromedioApp() {
 }
 
 @Composable private fun ExentoCard(promedio: Double?) {
-    Card(Modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
+    Card(modifier.fillMaxWidth(), shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(Color(0xFF22C55E).copy(0.12f)),
         border = androidx.compose.foundation.BorderStroke(1.5.dp, Color(0xFF22C55E).copy(0.5f))) {
         Column(Modifier.fillMaxWidth().padding(20.dp), horizontalAlignment = Alignment.CenterHorizontally) {
@@ -318,10 +315,10 @@ fun MiPromedioApp() {
             Text("En cursos presenciales, si tu promedio de presentación es sobre 5.0, te eximes del examen final.",
                 style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, textAlign = TextAlign.Center)
             Spacer(Modifier.height(8.dp))
-            Text("Tu promedio (${promedio?.let { "%.2f".format(it) } ?: "—"}) es sobre 5.0, por eso no rinden examen.",
+            Text("Tu promedio (${promedio?.let { "%.1f".format(it) } ?: "—"}) es sobre 5.0, por eso no rinden examen.",
                 style = MaterialTheme.typography.bodyLarge, color = Color(0xFF22C55E), textAlign = TextAlign.Center, fontWeight = FontWeight.Medium)
             Spacer(Modifier.height(14.dp))
-            Text(promedio?.let { "%.2f".format(it) } ?: "—",
+            Text(promedio?.let { "%.1f".format(it) } ?: "—",
                 style = MaterialTheme.typography.displayLarge.copy(fontSize = 42.sp), color = Color(0xFF22C55E), fontWeight = FontWeight.Bold)
             Text("Nota final (sin examen)", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
@@ -364,10 +361,10 @@ private fun calcularResultado(notas: List<NotaInput>, esOnline: Boolean, notaExa
         notaExamen != null && notaExamen in 1.0..7.0 -> promedioPresentacion * 0.75 + notaExamen * 0.25
         else -> null
     }
-    val notaNecesaria = if (requiereExamen) round(((meta - promedioPresentacion * 0.75) / 0.25) * 100) / 100.0 else null
+    val notaNecesaria = if (requiereExamen) round(((meta - promedioPresentacion * 0.75) / 0.25) * 10) / 10.0 else null
     return ResultadoCalculo(
-        round(promedioPresentacion * 100) / 100.0,
-        promedioFinal?.let { round(it * 100) / 100.0 },
+        round(promedioPresentacion * 10) / 10.0,
+        promedioFinal?.let { round(it * 10) / 10.0 },
         requiereExamen, exento, notaNecesaria
     )
 }
